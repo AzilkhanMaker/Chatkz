@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Chatkz Ultimate | Stable Edition</title>
+    <title>Chatkz | Ultimate Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -10,30 +10,19 @@
     <script src="https://meet.jit.si/external_api.js"></script>
     <style>
         :root { --bg: #313338; --side: #2B2D31; --text: #ffffff; --accent: #5865F2; --border: rgba(0,0,0,0.2); }
-        body { background: var(--bg); color: var(--text); transition: 0.3s; font-family: sans-serif; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; }
         .sidebar { background: var(--side); }
-
-        /* Видео-панель */
+        
         #video-wrap {
             width: 380px; height: 100%; border-left: 1px solid var(--border);
             background: #000; display: none; flex-direction: column; transition: width 0.3s ease;
         }
         #video-wrap.wide { width: 100%; }
-        #video-controls { display: flex; gap: 1px; background: var(--border); }
-        #video-controls button { flex: 1; padding: 10px; font-size: 11px; font-weight: bold; color: white; }
-        .btn-close { background: #F23F42; }
-        .btn-toggle { background: #4E5058; }
-
-        /* Список пользователей */
-        .user-card { background: var(--bg); padding: 8px; border-radius: 4px; margin-bottom: 4px; font-size: 13px; display: flex; align-items: center; border: 1px solid var(--border); }
-        .user-status { width: 8px; height: 8px; background: #23A55A; border-radius: 50%; margin-right: 8px; }
-
-        /* Селфи-камера */
-        #self-view { position: fixed; bottom: 20px; right: 20px; width: 150px; height: 100px; background: #000; border: 2px solid var(--accent); border-radius: 8px; display: none; z-index: 100; }
         
-        /* Скроллбары */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .msg-item:hover .del-btn { opacity: 1; }
+        .del-btn { opacity: 0; transition: 0.2s; cursor: pointer; color: #ff4747; }
+        
+        #self-view { position: fixed; bottom: 20px; right: 20px; width: 150px; height: 100px; background: #000; border: 2px solid var(--accent); border-radius: 8px; display: none; z-index: 100; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -41,12 +30,12 @@
     <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#313338]">
         <div class="bg-white p-8 rounded-lg shadow-2xl w-80 text-black text-center">
             <h2 class="text-2xl font-bold mb-6 text-[#5865F2]">Chatkz</h2>
-            <div id="auth-loading" class="text-xs text-gray-500 mb-4 italic">Синхронизация...</div>
+            <div id="auth-loading" class="text-xs text-gray-400 mb-4">Подключение к серверу...</div>
             <div id="auth-form" class="hidden">
-                <input type="email" id="email" placeholder="Email" class="w-full p-2 border mb-2 rounded outline-none shadow-inner">
-                <input type="password" id="pass" placeholder="Пароль" class="w-full p-2 border mb-4 rounded outline-none shadow-inner">
+                <input type="email" id="email" placeholder="Email" class="w-full p-2 border mb-2 rounded outline-none">
+                <input type="password" id="pass" placeholder="Пароль" class="w-full p-2 border mb-4 rounded outline-none">
                 <button onclick="handleAuth('login')" class="w-full bg-[#5865F2] text-white py-2 rounded font-bold hover:bg-[#4752C4] mb-2">Войти</button>
-                <button onclick="handleAuth('reg')" class="w-full text-sm text-gray-500 hover:underline">Создать аккаунт</button>
+                <button onclick="handleAuth('reg')" class="w-full text-sm text-gray-500 hover:underline">Регистрация</button>
             </div>
         </div>
     </div>
@@ -54,42 +43,42 @@
     <div id="main-app" class="flex flex-1 hidden">
         <nav class="w-16 bg-[#1E1F22] flex flex-col items-center py-4 space-y-4 shadow-xl">
             <div class="w-12 h-12 bg-[#5865F2] rounded-2xl flex items-center justify-center font-bold">CK</div>
-            <div id="admin-add" class="hidden w-12 h-12 bg-[#313338] rounded-full flex items-center justify-center text-green-500">+</div>
+            <div id="admin-indicator" class="hidden w-2 h-2 bg-green-500 rounded-full"></div>
         </nav>
 
         <aside class="sidebar w-60 flex flex-col border-r border-black/10">
             <div class="p-4 font-bold border-b border-black/10">Chatkz Server</div>
             <div class="flex-1 p-2 space-y-1 overflow-y-auto">
-                <div class="p-2 bg-black/10 rounded cursor-pointer font-medium text-sm"># общий</div>
+                <div class="p-2 bg-black/10 rounded cursor-pointer text-sm"># общий</div>
                 <div onclick="openVideo()" class="p-2 hover:bg-black/5 rounded cursor-pointer flex items-center text-indigo-400 text-sm font-bold">
                     <span class="mr-2">🔊</span> Голосовой канал
                 </div>
             </div>
 
-            <div id="user-list" class="p-2 border-t border-white/5 bg-black/5">
-                <div class="text-[10px] uppercase font-bold text-gray-500 mb-2 px-1">В сети</div>
+            <div id="user-list" class="p-2 border-t border-white/5">
+                <div class="text-[10px] uppercase font-bold text-gray-500 mb-2">В сети</div>
                 <div id="users-container" class="space-y-1"></div>
             </div>
 
             <div class="p-3 bg-black/20 text-xs space-y-2">
-                <button onclick="toggleSelfView()" class="w-full p-2 bg-indigo-500/10 border border-indigo-500/30 rounded text-indigo-300 hover:bg-indigo-500/20">📷 Камера</button>
-                <button onclick="logOut()" class="w-full p-2 bg-red-500/10 border border-red-500/50 rounded text-red-400 hover:bg-red-500 hover:text-white transition font-bold uppercase">🚪 Выйти</button>
-                <input type="password" id="admin-input" placeholder="Код админа..." oninput="checkAdmin()" class="w-full bg-black/20 border border-white/5 p-1 rounded outline-none text-white text-[10px]">
+                <button onclick="toggleSelfView()" class="w-full p-2 bg-indigo-500/10 border border-indigo-500/30 rounded text-indigo-300">📷 Камера</button>
+                <button onclick="logOut()" class="w-full p-2 bg-red-500/10 border border-red-500/30 rounded text-red-400 font-bold">🚪 ВЫЙТИ</button>
+                <input type="password" id="admin-input" placeholder="Код..." oninput="checkAdmin()" class="w-full bg-black/20 border border-white/5 p-1 rounded outline-none text-white text-[10px]">
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-row bg-transparent">
+        <main class="flex-1 flex flex-row">
             <div class="flex-1 flex flex-col min-w-0">
-                <div id="chat-msgs" class="flex-1 overflow-y-auto p-4 space-y-2 text-sm"></div>
+                <div id="chat-msgs" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm"></div>
                 <div class="p-4 bg-black/5">
-                    <input type="text" id="input" class="w-full bg-black/10 p-3 rounded-lg outline-none border border-white/5 text-white focus:border-[#5865F2]" placeholder="Написать сообщение...">
+                    <input type="text" id="input" class="w-full bg-black/10 p-3 rounded-lg outline-none border border-white/5 text-white focus:border-[#5865F2]" placeholder="Написать...">
                 </div>
             </div>
 
             <div id="video-wrap">
-                <div id="video-controls">
-                    <button onclick="toggleWide()" class="btn-toggle">⇳ РАСШИРИТЬ</button>
-                    <button onclick="closeVideo()" class="btn-close">ВЫЙТИ</button>
+                <div class="flex bg-[#1E1F22] p-1 gap-1">
+                    <button onclick="toggleWide()" class="flex-1 bg-gray-700 text-[10px] py-2 font-bold rounded">РАСШИРИТЬ</button>
+                    <button onclick="closeVideo()" class="flex-1 bg-red-600 text-[10px] py-2 font-bold rounded">ВЫЙТИ</button>
                 </div>
                 <div id="meet" class="flex-1"></div>
             </div>
@@ -109,29 +98,23 @@
         const db = firebase.database();
 
         let jitsiApi = null;
-        let isAdmin = false;
 
-        // --- ЛОГИКА АВТОРИЗАЦИИ (БЕЗ ВЫЛЕТОВ) ---
+        // Авторизация
         auth.onAuthStateChanged(user => {
             if(user) {
-                // Если сессия найдена
-                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('auth-screen').style.display = 'none';
                 document.getElementById('main-app').classList.remove('hidden');
                 initApp(user);
             } else {
-                // Если нужно войти
+                document.getElementById('auth-screen').style.display = 'flex';
                 document.getElementById('auth-loading').classList.add('hidden');
                 document.getElementById('auth-form').classList.remove('hidden');
-                document.getElementById('auth-screen').classList.remove('hidden');
-                document.getElementById('main-app').classList.add('hidden');
             }
         });
 
         async function handleAuth(m) {
             const e = document.getElementById('email').value, p = document.getElementById('pass').value;
-            if(!e || !p) return alert("Заполните поля!");
             try {
-                // Устанавливаем сохранение в браузере (Persistence)
                 await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
                 if(m === 'reg') await auth.createUserWithEmailAndPassword(e, p);
                 else await auth.signInWithEmailAndPassword(e, p);
@@ -139,14 +122,9 @@
         }
 
         function logOut() {
-            if (confirm("Выйти из аккаунта?")) {
-                const user = auth.currentUser;
-                if(user) db.ref('presence/' + user.uid).remove();
-                auth.signOut().then(() => window.location.reload());
-            }
+            if(confirm("Выйти?")) auth.signOut().then(() => window.location.reload());
         }
 
-        // --- ИНИЦИАЛИЗАЦИЯ ПОСЛЕ ВХОДА ---
         function initApp(user) {
             const myName = user.email.split('@')[0];
             db.ref('presence/' + user.uid).set({ name: myName });
@@ -156,27 +134,34 @@
             syncUsers();
         }
 
-        function syncUsers() {
-            db.ref('presence').on('value', s => {
-                const container = document.getElementById('users-container');
-                container.innerHTML = '';
-                s.forEach(d => {
-                    container.innerHTML += `<div class="user-card"><div class="user-status"></div>${d.val().name}</div>`;
-                });
-            });
-        }
-
+        // Чат с функцией удаления
         function syncChat(myName) {
-            db.ref('messages').limitToLast(30).on('value', s => {
+            db.ref('messages').limitToLast(50).on('value', s => {
                 const box = document.getElementById('chat-msgs');
                 box.innerHTML = '';
                 s.forEach(d => {
                     const m = d.val();
-                    const nameColor = m.u === myName ? 'text-indigo-400' : 'text-[#5865F2]';
-                    box.innerHTML += `<div><b class="${nameColor}">${m.u}:</b> <span>${m.t}</span></div>`;
+                    const id = d.key; // ID сообщения в базе
+                    const isMe = m.u === myName;
+                    
+                    box.innerHTML += `
+                        <div class="msg-item flex justify-between items-start group">
+                            <div>
+                                <b class="${isMe ? 'text-indigo-400' : 'text-[#5865F2]'}">${m.u}:</b>
+                                <span class="ml-1">${m.t}</span>
+                            </div>
+                            <button onclick="deleteMsg('${id}')" class="del-btn text-[10px] ml-2">✕ удалить</button>
+                        </div>
+                    `;
                 });
                 box.scrollTop = box.scrollHeight;
             });
+        }
+
+        function deleteMsg(id) {
+            if(confirm("Удалить это сообщение?")) {
+                db.ref('messages').child(id).remove();
+            }
         }
 
         document.getElementById('input').onkeypress = e => {
@@ -186,20 +171,41 @@
             }
         };
 
-        // --- ВИДЕО-ФУНКЦИИ ---
+        function syncUsers() {
+            db.ref('presence').on('value', s => {
+                const container = document.getElementById('users-container');
+                container.innerHTML = '';
+                s.forEach(d => {
+                    container.innerHTML += `<div class="flex items-center text-xs p-1 bg-black/10 rounded"><div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>${d.val().name}</div>`;
+                });
+            });
+        }
+
+        // Видео (защита от кика)
         function openVideo() {
-            document.getElementById('video-wrap').style.display = 'flex';
-            if(jitsiApi) jitsiApi.dispose();
+            const wrap = document.getElementById('video-wrap');
+            if (wrap.style.display === 'flex') return; // Если уже открыто, не пересоздаем
+
+            wrap.style.display = 'flex';
             jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", {
-                roomName: "Chatkz_Global_Room",
+                roomName: "Chatkz_Global_Room_Secure",
                 width: "100%", height: "100%",
                 parentNode: document.getElementById('meet'),
+                configOverwrite: { 
+                    prejoinPageEnabled: false,
+                    disableDeepLinking: true 
+                },
+                interfaceConfigOverwrite: { 
+                    RECENT_LIST_ENABLED: false,
+                    GENERATE_ROOMNAMES_ON_WELCOME_PAGE: false
+                },
                 userInfo: { displayName: auth.currentUser.email.split('@')[0] }
             });
         }
 
         function closeVideo() {
             if(jitsiApi) jitsiApi.dispose();
+            jitsiApi = null;
             document.getElementById('video-wrap').style.display = 'none';
         }
 
@@ -219,9 +225,8 @@
 
         function checkAdmin() {
             if(document.getElementById('admin-input').value === "PO-432") {
-                isAdmin = true;
-                document.getElementById('admin-add').classList.remove('hidden');
-                alert("Админ-доступ активирован");
+                document.getElementById('admin-indicator').classList.remove('hidden');
+                alert("Доступ администратора!");
             }
         }
     </script>
