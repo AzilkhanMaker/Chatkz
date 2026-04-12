@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatkz Ultimate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.11.0.js"></script>
+    <style>
+        .dark-theme { --bg: #313338; --sidebar: #2B2D31; --text: white; }
+        .light-theme { --bg: #ffffff; --sidebar: #f2f3f5; --text: #060607; }
+        body { background-color: var(--bg); color: var(--text); transition: 0.3s; }
+        .sidebar { background-color: var(--sidebar); }
+    </style>
+</head>
+<body class="dark-theme h-screen flex flex-col overflow-hidden">
+
+    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#5865F2]">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-96 text-black">
+            <h2 id="t-welcome" class="text-2xl font-bold mb-4 text-center">Chatkz</h2>
+            <input type="email" id="email" placeholder="Email" class="w-full p-2 border mb-2 rounded">
+            <input type="password" id="pass" placeholder="Password" class="w-full p-2 border mb-4 rounded">
+            <button onclick="handleAuth('login')" class="w-full bg-[#5865F2] text-white py-2 rounded mb-2 font-bold">Войти</button>
+            <button onclick="handleAuth('reg')" class="w-full text-sm text-gray-500">Регистрация</button>
+        </div>
+    </div>
+
+    <div id="main-app" class="flex flex-1 hidden">
+        <nav class="w-20 bg-[#1E1F22] flex flex-col items-center py-4 space-y-4">
+            <div class="w-12 h-12 bg-[#5865F2] rounded-2xl flex items-center justify-center cursor-pointer">CK</div>
+            <button id="btn-add-server" class="hidden w-12 h-12 bg-[#313338] rounded-full text-green-500 text-2xl hover:rounded-2xl transition-all">+</button>
+        </nav>
+
+        <aside class="sidebar w-64 flex flex-col">
+            <div class="p-4 font-bold border-b border-black/10 flex justify-between">
+                <span>Chatkz HQ</span>
+            </div>
+            <div class="flex-1 p-2 space-y-2">
+                <div class="p-2 bg-black/10 rounded cursor-pointer"># <span id="t-general">общий</span></div>
+                <button onclick="startCall(false)" class="w-full text-left p-2 hover:bg-black/5">📹 <span id="t-video">Видео</span></button>
+                <button onclick="startCall(true)" class="w-full text-left p-2 hover:bg-black/5">🖥️ <span id="t-screen">Экран</span></button>
+            </div>
+            <div class="p-4 bg-black/5">
+                <select id="lang-select" onchange="changeLang()" class="bg-transparent text-xs mb-2 w-full border border-gray-500 rounded">
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                    <option value="kz">Қазақша</option>
+                </select>
+                <button onclick="toggleTheme()" class="text-xs block w-full text-left mb-2">🌓 <span id="t-theme">Тема</span></button>
+                <input type="password" id="admin-code" placeholder="PO-432?" oninput="checkAdmin()" class="w-full bg-transparent border border-gray-500 p-1 text-xs rounded">
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col relative">
+            <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+            <div class="p-4">
+                <input type="text" id="msg-input" class="w-full bg-black/10 p-3 rounded-lg outline-none" placeholder="Message...">
+            </div>
+
+            <div id="video-container" class="absolute inset-0 bg-black hidden flex-col">
+                <div id="video-streams" class="flex-1 grid grid-cols-2 gap-2 p-4"></div>
+                <div class="h-16 flex justify-center items-center bg-gray-900">
+                    <button onclick="stopCall()" class="bg-red-500 px-6 py-2 rounded-full font-bold text-white">End Call</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- КОНФИГУРАЦИЯ (ВСТАВЬ СВОИ ДАННЫЕ) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSy...",
+            databaseURL: "https://your-db.firebaseio.com",
+            projectId: "your-project",
+            appId: "your-app-id"
+        };
+        const AGORA_APP_ID = "your-agora-app-id";
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+        let isAdmin = false;
+
+        // --- ЛОКАЛИЗАЦИЯ ---
+        const lang = {
+            ru: { welcome: "С возвращением!", general: "общий", video: "Видео-чат", screen: "Демонстрация", theme: "Сменить тему" },
+            en: { welcome: "Welcome back!", general: "general", video: "Video Call", screen: "Screen Share", theme: "Toggle Theme" },
+            kz: { welcome: "Қош келдіңіз!", general: "жалпы", video: "Бейне қоңырау", screen: "Экранды көрсету", theme: "Тақырыпты өзгерту" }
+        };
+
+        function changeLang() {
+            const l = document.getElementById('lang-select').value;
+            document.getElementById('t-welcome').innerText = lang[l].welcome;
+            document.getElementById('t-general').innerText = lang[l].general;
+            document.getElementById('t-video').innerText = lang[l].video;
+            document.getElementById('t-screen').innerText = lang[l].screen;
+            document.getElementById('t-theme').innerText = lang[l].theme;
+        }
+
+        // --- ТЕМА ---
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            document.body.classList.toggle('light-theme');
+        }
+
+        // --- АДМИНКА ---
+        function checkAdmin() {
+            const code = document.getElementById('admin-code').value;
+            if(code === "PO-432") {
+                isAdmin = true;
+                document.getElementById('btn-add-server').classList.remove('hidden');
+                alert("ADMIN ACTIVATED");
+            }
+        }
+
+        // --- АВТОРИЗАЦИЯ ---
+        async function handleAuth(type) {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('pass').value;
+            try {
+                if(type === 'reg') await auth.createUserWithEmailAndPassword(email, pass);
+                else await auth.signInWithEmailAndPassword(email, pass);
+            } catch(e) { alert(e.message); }
+        }
+
+        auth.onAuthStateChanged(user => {
+            if(user) {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                loadMessages();
+            }
+        });
+
+        // --- ЧАТ ---
+        const msgInput = document.getElementById('msg-input');
+        msgInput.addEventListener('keypress', (e) => {
+            if(e.key === 'Enter' && msgInput.value.trim()) {
+                db.ref('msgs').push({
+                    user: auth.currentUser.email,
+                    text: msgInput.value,
+                    ts: Date.now()
+                });
+                msgInput.value = "";
+            }
+        });
+
+        function loadMessages() {
+            db.ref('msgs').limitToLast(50).on('value', snap => {
+                const box = document.getElementById('messages');
+                box.innerHTML = "";
+                snap.forEach(d => {
+                    const m = d.val();
+                    const canKick = isAdmin ? `<button onclick="deleteMsg('${d.key}')" class="text-red-500 text-[10px] ml-2 underline">Kick Msg</button>` : "";
+                    box.innerHTML += `<div class="mb-2"><b class="text-sm">${m.user.split('@')[0]}</b>: <span class="text-sm opacity-80">${m.text}</span>${canKick}</div>`;
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        function deleteMsg(id) { if(isAdmin) db.ref('msgs/'+id).remove(); }
+
+        // --- AGORA VIDEO & SCREEN ---
+        let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        let localTracks = [];
+
+        async function startCall(isScreen) {
+            document.getElementById('video-container').classList.remove('hidden');
+            const uid = await client.join(AGORA_APP_ID, "chatkz-main", null, null);
+            
+            if(isScreen) {
+                localTracks = [await AgoraRTC.createScreenVideoTrack()];
+            } else {
+                localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+            }
+            
+            const player = document.createElement('div');
+            player.id = "local-player";
+            player.className = "w-full h-full bg-gray-800 rounded";
+            document.getElementById('video-streams').append(player);
+            
+            localTracks[isScreen ? 0 : 1].play(player);
+            await client.publish(localTracks);
+            
+            client.on("user-published", async (user, type) => {
+                await client.subscribe(user, type);
+                if(type === "video") {
+                    const rPlayer = document.createElement('div');
+                    rPlayer.id = `user-${user.uid}`;
+                    rPlayer.className = "w-full h-full bg-gray-700 rounded";
+                    document.getElementById('video-streams').append(rPlayer);
+                    user.videoTrack.play(rPlayer);
+                }
+            });
+        }
+
+        async function stopCall() {
+            localTracks.forEach(t => { t.stop(); t.close(); });
+            await client.leave();
+            document.getElementById('video-container').classList.add('hidden');
+            document.getElementById('video-streams').innerHTML = "";
+        }
+    </script>
+</body>
+</html>
