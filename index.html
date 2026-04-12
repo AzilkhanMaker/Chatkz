@@ -9,11 +9,58 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://meet.jit.si/external_api.js"></script>
     <style>
-        :root { --bg: #313338; --side: #2B2D31; --text: #ffffff; }
-        .light { --bg: #ffffff; --side: #f2f3f5; --text: #060607; }
-        body { background: var(--bg); color: var(--text); transition: 0.3s; }
-        .sidebar { background: var(--side); }
-    </style>
+    /* Базовая тема Discord */
+    :root { 
+        --bg: #313338; 
+        --side: #2B2D31; 
+        --text: #ffffff; 
+        --accent: #5865F2;
+        --border: rgba(0,0,0,0.2);
+    }
+    
+    /* Светлая тема */
+    .light { 
+        --bg: #ffffff; 
+        --side: #f2f3f5; 
+        --text: #060607; 
+        --border: rgba(0,0,0,0.1);
+    }
+    
+    body { background: var(--bg); color: var(--text); transition: 0.3s; }
+    .sidebar { background: var(--side); }
+
+    /* Окно Jitsi-звонка в стиле Discord (правая панель) */
+    #video-wrap {
+        width: 340px; /* Фиксированная ширина окна звонка */
+        height: 100%; /* Полная высота */
+        border-left: 1px solid var(--border);
+        flex-direction: column;
+        display: none; /* Скрыто по умолчанию */
+        position: static; /* Убираем наложение на весь экран */
+        background: #000000; /* Черный фон для видео */
+        flex-shrink: 0; /* Не сжимать при изменении окна браузера */
+    }
+    
+    #video-wrap.visible {
+        display: flex; /* Показываем, если есть класс .visible */
+    }
+
+    /* Кнопка "ЗАКРЫТЬ ЗВОНОК" внизу панели звонка */
+    #video-wrap button {
+        width: 100%;
+        height: 48px;
+        background: #F23F42; /* Оригинальный цвет Discord для завершения */
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+    }
+
+    /* Кастомный скроллбар в стиле Discord */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--side); }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.3); border-radius: 10px; }
+</style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
