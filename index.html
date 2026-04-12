@@ -9,58 +9,47 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://meet.jit.si/external_api.js"></script>
     <style>
-    /* Базовая тема Discord */
-    :root { 
-        --bg: #313338; 
-        --side: #2B2D31; 
-        --text: #ffffff; 
-        --accent: #5865F2;
-        --border: rgba(0,0,0,0.2);
-    }
-    
-    /* Светлая тема */
-    .light { 
-        --bg: #ffffff; 
-        --side: #f2f3f5; 
-        --text: #060607; 
-        --border: rgba(0,0,0,0.1);
-    }
-    
-    body { background: var(--bg); color: var(--text); transition: 0.3s; }
-    .sidebar { background: var(--side); }
+        :root { 
+            --bg: #313338; 
+            --side: #2B2D31; 
+            --text: #ffffff; 
+            --accent: #5865F2;
+            --border: rgba(0,0,0,0.2);
+        }
+        .light { 
+            --bg: #ffffff; 
+            --side: #f2f3f5; 
+            --text: #060607; 
+            --border: rgba(0,0,0,0.1);
+        }
+        body { background: var(--bg); color: var(--text); transition: 0.3s; }
+        .sidebar { background: var(--side); }
 
-    /* Окно Jitsi-звонка в стиле Discord (правая панель) */
-    #video-wrap {
-        width: 340px; /* Фиксированная ширина окна звонка */
-        height: 100%; /* Полная высота */
-        border-left: 1px solid var(--border);
-        flex-direction: column;
-        display: none; /* Скрыто по умолчанию */
-        position: static; /* Убираем наложение на весь экран */
-        background: #000000; /* Черный фон для видео */
-        flex-shrink: 0; /* Не сжимать при изменении окна браузера */
-    }
-    
-    #video-wrap.visible {
-        display: flex; /* Показываем, если есть класс .visible */
-    }
+        /* Панель видео (правая колонка) */
+        #video-wrap {
+            width: 380px;
+            height: 100%;
+            border-left: 1px solid var(--border);
+            background: #000000;
+            display: none; /* Скрыто по умолчанию */
+            flex-direction: column;
+            flex-shrink: 0;
+        }
 
-    /* Кнопка "ЗАКРЫТЬ ЗВОНОК" внизу панели звонка */
-    #video-wrap button {
-        width: 100%;
-        height: 48px;
-        background: #F23F42; /* Оригинальный цвет Discord для завершения */
-        font-weight: bold;
-        text-transform: uppercase;
-        font-size: 13px;
-        letter-spacing: 0.5px;
-    }
+        /* Кнопка закрытия */
+        #video-wrap button {
+            width: 100%;
+            padding: 12px;
+            background: #F23F42;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
 
-    /* Кастомный скроллбар в стиле Discord */
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: var(--side); }
-    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.3); border-radius: 10px; }
-</style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--side); }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.3); border-radius: 10px; }
+    </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
@@ -70,7 +59,7 @@
             <input type="email" id="email" placeholder="Email" class="w-full p-2 border mb-2 rounded outline-none">
             <input type="password" id="pass" placeholder="Пароль" class="w-full p-2 border mb-4 rounded outline-none">
             <button onclick="handleAuth('login')" class="w-full bg-[#5865F2] text-white py-2 rounded font-bold hover:bg-[#4752C4]">Войти</button>
-            <button onclick="handleAuth('reg')" class="w-full text-xs text-gray-400 mt-2">Создать аккаунт</button>
+            <button onclick="handleAuth('reg')" class="w-full text-sm text-gray-400 mt-2">Создать аккаунт</button>
         </div>
     </div>
 
@@ -81,16 +70,13 @@
         </nav>
 
         <aside class="sidebar w-60 flex flex-col border-r border-black/10">
-            <div class="p-4 font-bold shadow-sm flex justify-between items-center">
-                <span>Chatkz Server</span>
-            </div>
+            <div class="p-4 font-bold shadow-sm">Chatkz Server</div>
             <div class="flex-1 p-2 space-y-1">
                 <div class="p-2 bg-black/10 rounded cursor-pointer font-medium"># <span id="t-gen">общий</span></div>
                 <div onclick="openVideo()" class="p-2 hover:bg-black/5 rounded cursor-pointer flex items-center text-indigo-400">
                     <span class="mr-2">🔊</span> <span id="t-call">Голосовой канал</span>
                 </div>
             </div>
-
             <div class="p-3 bg-black/10 text-xs space-y-2">
                 <select id="lang" onchange="updateLang()" class="w-full bg-transparent border border-white/20 p-1 rounded">
                     <option value="ru">Русский</option>
@@ -98,25 +84,26 @@
                     <option value="kz">Қазақша</option>
                 </select>
                 <button onclick="document.body.classList.toggle('light')" class="w-full text-left p-1 border border-white/20 rounded">🌓 <span id="t-theme">Тема</span></button>
-                <input type="password" id="admin-input" placeholder="Код админа..." oninput="checkAdmin()" class="w-full bg-transparent border border-white/20 p-1 rounded outline-none">
+                <input type="password" id="admin-input" placeholder="Код админа..." oninput="checkAdmin()" class="w-full bg-transparent border border-white/20 p-1 rounded outline-none text-white">
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col relative bg-transparent">
-            <div id="chat-msgs" class="flex-1 overflow-y-auto p-4 space-y-2 text-sm"></div>
-            <div class="p-4">
-                <input type="text" id="input" class="w-full bg-black/10 p-3 rounded-lg outline-none border border-white/5 focus:border-[#5865F2]" placeholder="Написать...">
+        <main class="flex-1 flex flex-row bg-transparent">
+            <div class="flex-1 flex flex-col min-w-0">
+                <div id="chat-msgs" class="flex-1 overflow-y-auto p-4 space-y-2 text-sm"></div>
+                <div class="p-4">
+                    <input type="text" id="input" class="w-full bg-black/10 p-3 rounded-lg outline-none border border-white/5 focus:border-[#5865F2] text-white" placeholder="Написать...">
+                </div>
             </div>
 
-            <div id="video-wrap" class="absolute inset-0 bg-black hidden flex-col">
+            <div id="video-wrap">
                 <div id="meet" class="flex-1"></div>
-                <button onclick="closeVideo()" class="bg-red-600 p-2 font-bold text-white text-sm">ЗАКРЫТЬ ЗВОНОК</button>
+                <button onclick="closeVideo()">ЗАКРЫТЬ ЗВОНОК</button>
             </div>
         </main>
     </div>
 
     <script>
-        // --- КОНФИГУРАЦИЯ FIREBASE (ЗАМЕНИ НА СВОИ) ---
         const config = {
             apiKey: "AIzaSyCRQBj8tYWE7jR00SodWWBNEKq_m-Vfoyo",
             databaseURL: "https://chatkz-7d4a8-default-rtdb.europe-west1.firebasedatabase.app",
@@ -126,7 +113,6 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
-        // --- ЛОКАЛИЗАЦИЯ ---
         const dict = {
             ru: { welcome: "С возвращением!", gen: "общий", call: "Видео-связь", theme: "Тема" },
             en: { welcome: "Welcome back!", gen: "general", call: "Video Call", theme: "Theme" },
@@ -141,7 +127,6 @@
             document.getElementById('t-theme').innerText = dict[l].theme;
         }
 
-        // --- АДМИНКА ---
         let isAdmin = false;
         function checkAdmin() {
             if(document.getElementById('admin-input').value === "PO-432") {
@@ -151,7 +136,6 @@
             }
         }
 
-        // --- АВТОРИЗАЦИЯ ---
         async function handleAuth(m) {
             const e = document.getElementById('email').value, p = document.getElementById('pass').value;
             try {
@@ -168,7 +152,6 @@
             }
         });
 
-        // --- ЧАТ ---
         function syncChat() {
             db.ref('messages').limitToLast(40).on('value', s => {
                 const box = document.getElementById('chat-msgs');
@@ -189,27 +172,30 @@
             }
         };
 
-        // --- JITSI VIDEO (ВИДЕО + ЭКРАН + АУДИО) ---
         let jitsiApi = null;
         function openVideo() {
-            document.getElementById('video-wrap').classList.remove('hidden');
-            const domain = "meet.jit.si";
+            const wrap = document.getElementById('video-wrap');
+            wrap.style.display = 'flex';
+            
+            const meet = document.getElementById('meet');
+            meet.innerHTML = "";
+
             const options = {
-                roomName: "Chatkz_Room_Unique_123", // Уникальное имя комнаты
+                roomName: "Chatkz_Room_123",
                 width: "100%",
                 height: "100%",
-                parentNode: document.querySelector('#meet'),
+                parentNode: meet,
                 userInfo: { displayName: auth.currentUser.email.split('@')[0] },
                 interfaceConfigOverwrite: {
-                    TOOLBAR_BUTTONS: ['microphone', 'camera', 'desktop', 'hangup', 'chat', 'settings']
+                    TOOLBAR_BUTTONS: ['microphone', 'camera', 'desktop', 'hangup']
                 }
             };
-            jitsiApi = new JitsiMeetExternalAPI(domain, options);
+            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
         }
 
         function closeVideo() {
             if(jitsiApi) jitsiApi.dispose();
-            document.getElementById('video-wrap').classList.add('hidden');
+            document.getElementById('video-wrap').style.display = 'none';
         }
     </script>
 </body>
